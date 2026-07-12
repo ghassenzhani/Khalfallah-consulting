@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -24,7 +24,7 @@ type Message = {
   createdAt: string;
 };
 
-export default function AdminMessagesPage() {
+function AdminMessagesContent() {
   const [clients, setClients] = useState<ClientInfo[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -298,5 +298,13 @@ export default function AdminMessagesPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminMessagesPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-950 flex items-center justify-center"><div className="text-white">Chargement...</div></div>}>
+      <AdminMessagesContent />
+    </Suspense>
   );
 }
