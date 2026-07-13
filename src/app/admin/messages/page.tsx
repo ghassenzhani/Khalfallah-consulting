@@ -141,9 +141,9 @@ function AdminMessagesContent() {
             <Users className="w-5 h-5" />
             Leads / RDV
           </Link>
-          <Link href="/admin" className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 hover:text-white transition-all font-medium text-sm">
+          <Link href="/admin/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 hover:text-white transition-all font-medium text-sm">
             <Settings className="w-5 h-5" />
-            Paramètres
+            Mon Profil
           </Link>
         </nav>
 
