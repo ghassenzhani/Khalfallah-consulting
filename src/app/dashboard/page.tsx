@@ -35,22 +35,28 @@ export default function ClientDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = document.cookie.includes('auth-token');
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    fetch('/api/client/progress')
+    // Check authentication via server-side session endpoint
+    // (httpOnly cookies can't be read by document.cookie)
+    fetch('/api/auth/session')
       .then(res => res.json())
-      .then(data => {
-        if (data.error) {
+      .then(session => {
+        if (!session.authenticated) {
           router.push('/login');
-        } else {
-          setProgress(data);
-          setUser({ fullName: 'Étudiant' }); // would be from token in real impl
+          return;
         }
-        setLoading(false);
+        setUser(session.user);
+
+        // Now fetch the client's file progress
+        return fetch('/api/client/progress')
+          .then(res => res.json())
+          .then(data => {
+            if (data.error) {
+              router.push('/login');
+            } else {
+              setProgress(data);
+            }
+            setLoading(false);
+          });
       })
       .catch(() => {
         router.push('/login');
