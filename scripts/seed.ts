@@ -1,12 +1,14 @@
 import * as dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
-import { db } from '../src/db';
-import { users, clientProgress } from '../src/db/schema';
-import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
 async function seed() {
+  // Dynamically import after dotenv is loaded
+  const { db } = await import('../src/db');
+  const { users, clientProgress } = await import('../src/db/schema');
+  const { eq } = await import('drizzle-orm');
+
   console.log('🌱 Seeding database...');
 
   // Check if admin exists
