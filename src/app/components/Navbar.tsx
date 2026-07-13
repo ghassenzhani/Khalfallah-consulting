@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { Menu, X, ChevronDown, Phone } from 'lucide-react';
+import { Menu, X, ChevronDown, Phone, FileSearch } from 'lucide-react';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -80,6 +80,13 @@ export default function Navbar() {
 
         {/* Right Actions */}
         <div className="hidden lg:flex items-center gap-3">
+          <Link
+            href="/login"
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-full transition-all active:scale-[0.97]"
+          >
+            <FileSearch className="w-4 h-4" />
+            Track File
+          </Link>
           <a href="tel:+21698123456" className="flex items-center gap-2 text-sm font-medium text-zinc-700 hover:text-rose-600 transition-colors">
             <Phone className="w-4 h-4" />
             <span>+216 98 123 456</span>
@@ -113,6 +120,13 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="border-t border-zinc-100 mt-2 pt-4 flex flex-col gap-3">
+              <Link
+                href="/login"
+                onClick={() => setIsOpen(false)}
+                className="flex items-center justify-center gap-2 w-full py-4 bg-emerald-50 text-emerald-700 font-semibold rounded-full border border-emerald-200"
+              >
+                <FileSearch className="w-5 h-5" /> Track File
+              </Link>
               <a href="tel:+21698123456" className="flex items-center gap-3 text-rose-600 font-medium px-4">
                 <Phone className="w-5 h-5" /> +216 98 123 456
               </a>
