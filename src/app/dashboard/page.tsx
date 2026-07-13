@@ -13,6 +13,15 @@ const stepIcons: any = {
   6: Plane,
 };
 
+const stepDescriptions: Record<number, string> = {
+  1: "Nous analysons votre parcours académique, vos notes et votre profil pour identifier les meilleures universités et programmes adaptés à votre situation.",
+  2: "Rassemblement, traduction officielle et légalisation de tous vos documents : diplômes, relevés de notes, passeport, certificats et attestations nécessaires.",
+  3: "Sélection stratégique des universités italiennes en fonction de votre profil, vos préférences de ville, de programme et vos chances d'admission.",
+  4: "Soumission de vos candidatures sur la plateforme Universitaly et suivi des réponses des universités jusqu'à l'obtention de votre lettre d'admission.",
+  5: "Préparation des dossiers de bourse DSU, ISEE Parificato et recherche de logement étudiant (résidence universitaire ou appartement privé).",
+  6: "Constitution du dossier visa, prise de rendez-vous à l'ambassade, préparation à l'entretien et accompagnement jusqu'à l'obtention de votre visa.",
+};
+
 type Step = {
   stepId: number;
   title: string;
@@ -171,10 +180,13 @@ export default function ClientDashboard() {
                     <div className="flex-1 pt-1">
                       <div className="flex items-center justify-between">
                         <div className="font-medium text-xl">{step.title}</div>
-                        <span className={`text-xs px-5 py-2 rounded-3xl border ${getStatusColor(step.status)}`}>
+                        <span className={`text-xs px-5 py-2 rounded-3xl border shrink-0 ${getStatusColor(step.status)}`}>
                           {step.status === 'completed' ? 'TERMINÉ' : step.status === 'in-progress' ? 'EN COURS' : 'À FAIRE'}
                         </span>
                       </div>
+                      {stepDescriptions[step.stepId] && (
+                        <p className="mt-2 text-sm text-zinc-400 leading-relaxed">{stepDescriptions[step.stepId]}</p>
+                      )}
                       {step.notes && <div className="mt-3 text-sm text-zinc-500 bg-zinc-50 p-4 rounded-2xl">{step.notes}</div>}
                     </div>
                   </div>
