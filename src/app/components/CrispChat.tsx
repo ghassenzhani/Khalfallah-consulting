@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { MessageCircle, X, Send, Bot, User } from 'lucide-react';
 
 interface Message {
@@ -57,6 +58,7 @@ function getTime(): string {
 
 export default function CrispChat() {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 0,
@@ -69,6 +71,10 @@ export default function CrispChat() {
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

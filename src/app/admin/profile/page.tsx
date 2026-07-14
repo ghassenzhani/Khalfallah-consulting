@@ -112,7 +112,7 @@ export default function AdminProfilePage() {
           </Link>
           <Link href="/admin/leads" className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 hover:text-white transition-all font-medium text-sm">
             <Users className="w-5 h-5" />
-            Leads / RDV
+            Clients & Leads
           </Link>
           <Link href="/admin/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 text-white transition-all font-medium text-sm">
             <Settings className="w-5 h-5" />

@@ -35,6 +35,7 @@ export default function AdminLeadsPage() {
   const [createdAccount, setCreatedAccount] = useState<{ email: string; password: string } | null>(null);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -131,7 +132,7 @@ export default function AdminLeadsPage() {
             <MessageSquare className="w-5 h-5" /> Messages clients
           </Link>
           <Link href="/admin/leads" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 text-white font-medium text-sm">
-            <Users className="w-5 h-5" /> Leads / RDV
+            <Users className="w-5 h-5" /> Clients & Leads
           </Link>
           <Link href="/admin/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 hover:text-white transition-all font-medium text-sm">
             <Settings className="w-5 h-5" /> Mon Profil
@@ -326,6 +327,24 @@ export default function AdminLeadsPage() {
                 </div>
               )}
               <div className="text-xs text-zinc-600">Reçu le {new Date(selectedLead.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+              
+              {/* Action Buttons to Reply to Lead */}
+              <div className="flex items-center gap-3 pt-4 border-t border-zinc-800">
+                <a 
+                  href={`mailto:${selectedLead.email}?subject=Suite à votre demande de contact - Khalfallah Consulting`}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-sm transition-colors"
+                >
+                  <Mail className="w-4 h-4" /> Répondre par Email
+                </a>
+                <a 
+                  href={`https://wa.me/${selectedLead.phone.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#25D366] hover:bg-[#20b858] text-white rounded-xl text-sm transition-colors"
+                >
+                  <MessageSquare className="w-4 h-4" /> Répondre sur WhatsApp
+                </a>
+              </div>
             </div>
           </div>
         </div>

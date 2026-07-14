@@ -38,6 +38,7 @@ export default function AdminDashboard() {
   const [editingSteps, setEditingSteps] = useState<Step[]>([]);
   const [editingPaidAmount, setEditingPaidAmount] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showNotifications, setShowNotifications] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -128,9 +129,9 @@ export default function AdminDashboard() {
             Messages clients
             <span className="ml-auto bg-rose-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">NEW</span>
           </Link>
-          <Link href="/admin" className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 hover:text-white transition-all font-medium text-sm">
+          <Link href="/admin/leads" className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 hover:text-white transition-all font-medium text-sm">
             <Users className="w-5 h-5" />
-            Clients
+            Clients & Leads
           </Link>
           <Link href="/admin/profile" className="flex items-center gap-3 px-4 py-3 rounded-xl text-zinc-400 hover:bg-white/5 hover:text-white transition-all font-medium text-sm">
             <Settings className="w-5 h-5" />
@@ -175,10 +176,30 @@ export default function AdminDashboard() {
                 className="bg-zinc-900 border border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm w-64 outline-none focus:border-zinc-600 placeholder:text-zinc-600"
               />
             </div>
-            <button className="relative p-2 rounded-xl hover:bg-zinc-900 transition-colors">
-              <Bell className="w-5 h-5 text-zinc-400" />
-              <div className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></div>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 rounded-xl hover:bg-zinc-900 transition-colors"
+              >
+                <Bell className="w-5 h-5 text-zinc-400" />
+                <div className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></div>
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-72 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden z-50">
+                  <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+                    <h3 className="font-semibold text-sm">Notifications</h3>
+                    <span className="text-xs bg-rose-600 text-white px-2 py-0.5 rounded-full">1 nouvelle</span>
+                  </div>
+                  <div className="p-2">
+                    <div className="px-3 py-3 hover:bg-zinc-800 rounded-lg cursor-pointer transition-colors">
+                      <div className="text-sm font-medium text-white mb-1">Système opérationnel</div>
+                      <div className="text-xs text-zinc-500">Toutes les fonctionnalités sont actives.</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
