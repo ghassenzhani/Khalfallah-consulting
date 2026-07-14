@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { 
   Users, MessageSquare, BarChart3, Settings, LogOut, Home,
   UserPlus, Calendar, Mail, Phone, Copy, Check, X, Eye,
-  ChevronRight, Clock
+  ChevronRight, Clock, UserCheck
 } from 'lucide-react';
 
 type Lead = {
@@ -23,9 +23,26 @@ type Lead = {
   createdAt: string;
 };
 
+type Client = {
+  id: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  currentLevel: string;
+  fieldOfStudy: string;
+  isApproved: boolean;
+  createdAt: string;
+  totalAmount: number;
+  paidAmount: number;
+};
+
+type TabKey = 'clients' | 'leads';
+
 export default function AdminLeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabKey>('clients');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -35,17 +52,20 @@ export default function AdminLeadsPage() {
   const [createdAccount, setCreatedAccount] = useState<{ email: string; password: string } | null>(null);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    fetchLeads();
+    fetchAll();
   }, []);
 
-  const fetchLeads = async () => {
-    const res = await fetch('/api/admin/leads');
-    if (res.ok) {
-      setLeads(await res.json());
+  const fetchAll = async () => {
+    const [leadsRes, clientsRes] = await Promise.all([
+      fetch('/api/admin/leads'),
+      fetch('/api/admin/clients'),
+    ]);
+    if (leadsRes.ok) setLeads(await leadsRes.json());
+    if (clientsRes.ok) {
+      setClients(await clientsRes.json());
     } else {
       router.push('/login');
     }
@@ -83,7 +103,7 @@ export default function AdminLeadsPage() {
 
     if (res.ok) {
       setCreatedAccount({ email: data.client.email, password: data.generatedPassword });
-      fetchLeads();
+      fetchAll();
     } else {
       alert(data.error || 'Erreur lors de la création');
     }
@@ -152,78 +172,185 @@ export default function AdminLeadsPage() {
       <main className="flex-1 overflow-auto">
         <div className="sticky top-0 z-40 bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800 px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-semibold">Leads & Rendez-vous</h1>
+            <h1 className="text-xl font-semibold">Clients & Leads</h1>
             <ChevronRight className="w-4 h-4 text-zinc-600" />
-            <span className="text-sm text-zinc-500">{leads.length} demandes</span>
+            <span className="text-sm text-zinc-500">{clients.length} clients · {leads.length} leads</span>
           </div>
           <button onClick={openCreateBlank} className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-sm font-medium rounded-xl flex items-center gap-2 transition-colors">
             <UserPlus className="w-4 h-4" /> Créer un compte client
           </button>
         </div>
 
-        <div className="p-8">
-          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-zinc-800">
-                  <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Contact</th>
-                  <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">RDV</th>
-                  <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Sujet</th>
-                  <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Statut</th>
-                  <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800">
-                {leads.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-16 text-center text-zinc-500">Aucune demande reçue pour le moment.</td>
+        {/* Tabs */}
+        <div className="px-8 pt-6">
+          <div className="flex gap-1 bg-zinc-900 rounded-xl p-1 w-fit border border-zinc-800">
+            <button
+              onClick={() => setActiveTab('clients')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'clients'
+                  ? 'bg-white text-zinc-900 shadow-sm'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <UserCheck className="w-4 h-4" />
+              Clients ({clients.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('leads')}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                activeTab === 'leads'
+                  ? 'bg-white text-zinc-900 shadow-sm'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Users className="w-4 h-4" />
+              Leads ({leads.length})
+            </button>
+          </div>
+        </div>
+
+        <div className="p-8 pt-6">
+          {/* ── Clients Tab ── */}
+          {activeTab === 'clients' && (
+            <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-zinc-800">
+                    <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Client</th>
+                    <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Niveau / Filière</th>
+                    <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Statut</th>
+                    <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Paiement</th>
+                    <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Actions</th>
                   </tr>
-                ) : (
-                  leads.map((lead) => (
-                    <tr key={lead.id} className="hover:bg-zinc-800/50 transition-colors">
-                      <td className="py-5 px-6">
-                        <div className="font-medium text-sm">{lead.fullName}</div>
-                        <div className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3" />{lead.email}</div>
-                        <div className="text-xs text-zinc-500 flex items-center gap-1"><Phone className="w-3 h-3" />{lead.phone}</div>
-                      </td>
-                      <td className="py-5 px-6 text-sm">
-                        {lead.appointmentDate ? (
-                          <div className="flex items-center gap-2 text-zinc-400">
-                            <Calendar className="w-4 h-4" />
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {clients.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-16 text-center text-zinc-500">Aucun client pour le moment.</td>
+                    </tr>
+                  ) : (
+                    clients.map((client) => (
+                      <tr key={client.id} className="hover:bg-zinc-800/50 transition-colors">
+                        <td className="py-5 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 bg-zinc-700 rounded-full flex items-center justify-center text-sm font-medium shrink-0">
+                              {client.fullName.charAt(0)}
+                            </div>
                             <div>
-                              <div>{lead.appointmentDate}</div>
-                              <div className="text-xs text-zinc-600">{lead.appointmentTime}</div>
+                              <div className="font-medium text-sm">{client.fullName}</div>
+                              <div className="text-xs text-zinc-500">{client.email}</div>
                             </div>
                           </div>
-                        ) : (
-                          <span className="text-zinc-600 text-xs">Non planifié</span>
-                        )}
-                      </td>
-                      <td className="py-5 px-6 text-sm text-zinc-400 max-w-[200px] truncate">{lead.subject || lead.appointmentType || '-'}</td>
-                      <td className="py-5 px-6">
-                        <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border ${getStatusBadge(lead.status)}`}>
-                          {lead.status === 'converted' ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                          {lead.status === 'converted' ? 'Converti' : lead.status === 'contacted' ? 'Contacté' : 'Nouveau'}
-                        </span>
-                      </td>
-                      <td className="py-5 px-6">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => { setSelectedLead(lead); setShowDetailModal(true); }} className="px-3 py-2 text-xs border border-zinc-700 hover:bg-zinc-800 rounded-xl flex items-center gap-1.5 transition-colors">
-                            <Eye className="w-3 h-3" /> Voir
-                          </button>
-                          {lead.status !== 'converted' && (
-                            <button onClick={() => openCreateFromLead(lead)} className="px-3 py-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center gap-1.5 transition-colors">
-                              <UserPlus className="w-3 h-3" /> Créer compte
-                            </button>
-                          )}
-                        </div>
-                      </td>
+                        </td>
+                        <td className="py-5 px-6 text-sm text-zinc-400">
+                          {client.currentLevel} — {client.fieldOfStudy}
+                        </td>
+                        <td className="py-5 px-6">
+                          <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border ${
+                            client.isApproved
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          }`}>
+                            {client.isApproved ? <><Check className="w-3 h-3" /> Approuvé</> : <><Clock className="w-3 h-3" /> En attente</>}
+                          </span>
+                        </td>
+                        <td className="py-5 px-6">
+                          <div className="text-sm font-medium">{client.paidAmount || 0} / {client.totalAmount || 2500} €</div>
+                          <div className="w-24 h-1.5 bg-zinc-800 rounded-full mt-1.5">
+                            <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min(100, ((client.paidAmount || 0) / (client.totalAmount || 2500)) * 100)}%` }}></div>
+                          </div>
+                        </td>
+                        <td className="py-5 px-6">
+                          <div className="flex items-center gap-2">
+                            <Link href={`/admin?client=${client.id}`} className="px-3 py-2 text-xs border border-zinc-700 hover:bg-zinc-800 rounded-xl flex items-center gap-1.5 transition-colors">
+                              <Eye className="w-3 h-3" /> Gérer
+                            </Link>
+                            <Link href={`/admin/messages?client=${client.id}`} className="px-3 py-2 text-xs border border-zinc-700 hover:bg-zinc-800 rounded-xl flex items-center gap-1.5 transition-colors">
+                              <MessageSquare className="w-3 h-3" /> Message
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* ── Leads Tab ── */}
+          {activeTab === 'leads' && (
+            <div className="bg-zinc-900 rounded-2xl border border-zinc-800 overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-zinc-800">
+                    <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Contact</th>
+                    <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">RDV</th>
+                    <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Sujet</th>
+                    <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Statut</th>
+                    <th className="text-left py-4 px-6 font-normal text-xs uppercase tracking-widest text-zinc-500">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800">
+                  {leads.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-16 text-center text-zinc-500">Aucune demande reçue pour le moment.</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ) : (
+                    leads.map((lead) => (
+                      <tr key={lead.id} className="hover:bg-zinc-800/50 transition-colors">
+                        <td className="py-5 px-6">
+                          <div className="font-medium text-sm">{lead.fullName}</div>
+                          <div className="text-xs text-zinc-500 flex items-center gap-1 mt-0.5"><Mail className="w-3 h-3" />{lead.email}</div>
+                          <div className="text-xs text-zinc-500 flex items-center gap-1"><Phone className="w-3 h-3" />{lead.phone}</div>
+                        </td>
+                        <td className="py-5 px-6 text-sm">
+                          {lead.appointmentDate ? (
+                            <div className="flex items-center gap-2 text-zinc-400">
+                              <Calendar className="w-4 h-4" />
+                              <div>
+                                <div>{lead.appointmentDate}</div>
+                                <div className="text-xs text-zinc-600">{lead.appointmentTime}</div>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-zinc-600 text-xs">Non planifié</span>
+                          )}
+                        </td>
+                        <td className="py-5 px-6 text-sm text-zinc-400 max-w-[200px] truncate">{lead.subject || lead.appointmentType || '-'}</td>
+                        <td className="py-5 px-6">
+                          <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border ${getStatusBadge(lead.status)}`}>
+                            {lead.status === 'converted' ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                            {lead.status === 'converted' ? 'Converti' : lead.status === 'contacted' ? 'Contacté' : 'Nouveau'}
+                          </span>
+                        </td>
+                        <td className="py-5 px-6">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <button onClick={() => { setSelectedLead(lead); setShowDetailModal(true); }} className="px-3 py-2 text-xs border border-zinc-700 hover:bg-zinc-800 rounded-xl flex items-center gap-1.5 transition-colors">
+                              <Eye className="w-3 h-3" /> Voir
+                            </button>
+                            <a
+                              href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-2 text-xs bg-[#25D366] hover:bg-[#20b858] text-white rounded-xl flex items-center gap-1.5 transition-colors"
+                            >
+                              <MessageSquare className="w-3 h-3" /> WhatsApp
+                            </a>
+                            {lead.status !== 'converted' && (
+                              <button onClick={() => openCreateFromLead(lead)} className="px-3 py-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center gap-1.5 transition-colors">
+                                <UserPlus className="w-3 h-3" /> Créer compte
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </main>
 
