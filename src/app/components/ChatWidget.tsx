@@ -91,7 +91,7 @@ export default function ChatWidget() {
 
   // WhatsApp state
   const [waMessage, setWaMessage] = useState('');
-  const phoneNumber = 'YOUR_PHONE_NUMBER'; // Replace with your actual WhatsApp number
+  const phoneNumber = '21698123456';
 
   // Hide on admin routes
   if (pathname?.startsWith('/admin')) {
@@ -128,7 +128,7 @@ export default function ChatWidget() {
   const handleWhatsAppSend = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!waMessage.trim()) return;
-    const url = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(waMessage)}`;
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(waMessage)}`;
     window.open(url, '_blank');
     setWaMessage('');
     setView('closed');

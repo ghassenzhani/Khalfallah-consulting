@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { Loader2, CheckCircle2, Calendar } from 'lucide-react';
 
 const formSchema = z.object({
   fullName: z.string().min(3, "Le nom complet est requis"),
@@ -22,7 +23,9 @@ export default function LeadForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>();
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+  });
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
@@ -220,13 +223,17 @@ export default function LeadForm() {
               disabled={isSubmitting}
               className="w-full py-5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 disabled:opacity-70 text-white font-semibold text-base rounded-2xl transition-all active:scale-[0.985] flex items-center justify-center gap-3 shadow-xl shadow-rose-500/30"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-              {isSubmitting ? 'Confirmation...' : 'Confirmer le rendez-vous'}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Envoi en cours...</span>
+                </>
+              ) : (
+                <>
+                  <Calendar className="w-5 h-5" />
+                  <span>Confirmer le rendez-vous</span>
+                </>
+              )}
             </button>
           </form>
         </>

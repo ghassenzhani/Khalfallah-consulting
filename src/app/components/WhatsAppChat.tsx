@@ -15,14 +15,14 @@ export default function WhatsAppChat() {
     return null;
   }
 
-  const phoneNumber = "YOUR_PHONE_NUMBER"; // Replace with your actual WhatsApp number
+  const phoneNumber = "21698123456"; // Actual WhatsApp contact number
 
   const handleSend = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!message.trim()) return;
     
     // Open WhatsApp in a new tab with the pre-filled message
-    const url = `https://api.whatsapp.com/send?phone=${phoneNumber}&text=${encodeURIComponent(message)}`;
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank");
     
     // Reset state after sending
