@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Bot, User, ArrowLeft } from 'lucide-react';
+import { X, Send, Bot, User } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────
 interface ChatMessage {
@@ -13,7 +13,7 @@ interface ChatMessage {
   time: string;
 }
 
-type WidgetView = 'closed' | 'menu' | 'chat' | 'whatsapp';
+type WidgetView = 'closed' | 'chat';
 
 // ─── Auto-Reply Logic ────────────────────────────────────────────
 const AUTO_REPLIES: { keywords: string[]; reply: string }[] = [
@@ -61,15 +61,6 @@ function getTime(): string {
   return new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-// ─── WhatsApp SVG Icon ───────────────────────────────────────────
-function WhatsAppIcon({ className }: { className?: string }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className={className} fill="currentColor">
-      <path d="M12.031 0C5.405 0 0 5.394 0 12.012c0 2.122.551 4.195 1.6 6.03l-1.6 5.86 6-1.571a11.97 11.97 0 005.998 1.6h.032c6.626 0 12.031-5.394 12.031-12.012C24 5.394 18.595 0 12.031 0zm7.132 17.275c-.302.846-1.745 1.625-2.42 1.706-.675.081-1.428.163-4.52-1.117-3.708-1.536-6.136-5.46-6.321-5.714-.185-.254-1.51-2.012-1.51-3.832s.938-2.735 1.272-3.111c.334-.376.726-.47 1.05-.47.324 0 .647.01.938.01.291 0 .684-.112 1.07.825.385.938 1.325 3.242 1.442 3.486.117.244.195.529.04.834-.155.305-.233.488-.466.753-.233.264-.492.593-.7 1.078-.195.45-.632 1.017.385 1.697.585.39 1.05.813 1.488 1.25.438.438 1.446 1.157 2.063 1.554.498.322 1.066.305 1.455-.071.39-.376 1.677-1.951 2.125-2.611.447-.66.894-.551 1.487-.334.593.217 3.753 1.776 4.397 2.09.645.314 1.078.47 1.233.734.155.264.155 1.514-.147 2.36z" />
-    </svg>
-  );
-}
-
 // ─── Main Component ──────────────────────────────────────────────
 export default function ChatWidget() {
   const pathname = usePathname();
@@ -89,8 +80,6 @@ export default function ChatWidget() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
 
-  // WhatsApp state
-  const [waMessage, setWaMessage] = useState('');
   const phoneNumber = '21698123456';
 
   // Hide on admin routes
@@ -125,72 +114,13 @@ export default function ChatWidget() {
     }, 800 + Math.random() * 700);
   };
 
-  const handleWhatsAppSend = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!waMessage.trim()) return;
-    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(waMessage)}`;
-    window.open(url, '_blank');
-    setWaMessage('');
-    setView('closed');
-  };
-
   const toggleWidget = () => {
-    setView(view === 'closed' ? 'menu' : 'closed');
+    setView(view === 'chat' ? 'closed' : 'chat');
   };
 
-  const isOpen = view !== 'closed';
-
-  // ─── Render ──────────────────────────────────────────────────
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
       <AnimatePresence mode="wait">
-        {/* ────── Choice Menu ────── */}
-        {view === 'menu' && (
-          <motion.div
-            key="menu"
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="mb-4 w-72 origin-bottom-right overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5"
-          >
-            <div className="bg-rose-600 px-5 py-4">
-              <h3 className="text-white font-semibold text-sm">Khalfallah Consulting</h3>
-              <p className="text-white/80 text-xs mt-0.5">Comment souhaitez-vous nous contacter ?</p>
-            </div>
-
-            <div className="p-3 space-y-2">
-              {/* Simple Chat Option */}
-              <button
-                onClick={() => setView('chat')}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-zinc-50 transition-colors text-left group"
-              >
-                <div className="w-10 h-10 bg-rose-100 rounded-full flex items-center justify-center shrink-0 group-hover:bg-rose-200 transition-colors">
-                  <Bot className="w-5 h-5 text-rose-600" />
-                </div>
-                <div>
-                  <div className="font-medium text-sm text-zinc-900">Chat en direct</div>
-                  <div className="text-xs text-zinc-500">Réponse instantanée par notre assistant</div>
-                </div>
-              </button>
-
-              {/* WhatsApp Option */}
-              <button
-                onClick={() => setView('whatsapp')}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl hover:bg-zinc-50 transition-colors text-left group"
-              >
-                <div className="w-10 h-10 bg-[#25D366]/10 rounded-full flex items-center justify-center shrink-0 group-hover:bg-[#25D366]/20 transition-colors">
-                  <WhatsAppIcon className="w-5 h-5 text-[#25D366]" />
-                </div>
-                <div>
-                  <div className="font-medium text-sm text-zinc-900">WhatsApp</div>
-                  <div className="text-xs text-zinc-500">Parler directement avec un conseiller</div>
-                </div>
-              </button>
-            </div>
-          </motion.div>
-        )}
-
         {/* ────── Simple Chat View ────── */}
         {view === 'chat' && (
           <motion.div
@@ -199,23 +129,17 @@ export default function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="mb-4 w-[380px] max-w-[calc(100vw-3rem)] origin-bottom-right bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 flex flex-col overflow-hidden"
+            className="mb-4 w-[380px] max-w-[calc(100vw-3rem)] origin-bottom-right bg-white rounded-2xl shadow-2xl ring-1 ring-black/5 flex flex-col overflow-hidden border border-zinc-100"
             style={{ height: '480px' }}
           >
             {/* Header */}
-            <div className="bg-rose-600 px-5 py-4 flex items-center justify-between shrink-0">
+            <div className="bg-[#009664] px-5 py-4 flex items-center justify-between shrink-0 text-white">
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setView('menu')}
-                  className="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4 text-white" />
-                </button>
                 <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
                   <Bot className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <div className="text-white font-semibold text-sm">Khalfallah Consulting</div>
+                  <div className="font-semibold text-sm">Khalfallah Consulting</div>
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
                     <span className="text-white/80 text-xs">En ligne</span>
@@ -236,17 +160,17 @@ export default function ChatWidget() {
                 <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`flex gap-2 max-w-[85%] ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}>
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-1 ${
-                      msg.sender === 'user' ? 'bg-zinc-200' : 'bg-rose-100'
+                      msg.sender === 'user' ? 'bg-zinc-200' : 'bg-emerald-50'
                     }`}>
                       {msg.sender === 'user'
                         ? <User className="w-3.5 h-3.5 text-zinc-600" />
-                        : <Bot className="w-3.5 h-3.5 text-rose-600" />
+                        : <Bot className="w-3.5 h-3.5 text-[#009664]" />
                       }
                     </div>
                     <div>
                       <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                         msg.sender === 'user'
-                          ? 'bg-rose-600 text-white rounded-tr-sm'
+                          ? 'bg-[#009664] text-white rounded-tr-sm'
                           : 'bg-white text-zinc-800 border border-zinc-200 rounded-tl-sm shadow-sm'
                       }`}>
                         {msg.text}
@@ -263,8 +187,8 @@ export default function ChatWidget() {
               {isTyping && (
                 <div className="flex justify-start">
                   <div className="flex gap-2 items-end">
-                    <div className="w-7 h-7 rounded-full bg-rose-100 flex items-center justify-center shrink-0">
-                      <Bot className="w-3.5 h-3.5 text-rose-600" />
+                    <div className="w-7 h-7 rounded-full bg-emerald-50 flex items-center justify-center shrink-0">
+                      <Bot className="w-3.5 h-3.5 text-[#009664]" />
                     </div>
                     <div className="bg-white border border-zinc-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
                       <div className="flex gap-1">
@@ -290,12 +214,12 @@ export default function ChatWidget() {
                   onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleChatSend()}
                   placeholder="Écrivez votre message..."
-                  className="flex-1 px-4 py-2.5 bg-zinc-100 rounded-full text-sm outline-none focus:ring-2 focus:ring-rose-500/30 border border-transparent focus:border-rose-300 transition-all placeholder:text-zinc-400"
+                  className="flex-1 px-4 py-2.5 bg-zinc-100 rounded-full text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 border border-transparent focus:border-emerald-300 transition-all placeholder:text-zinc-400"
                 />
                 <button
                   onClick={handleChatSend}
                   disabled={!chatInput.trim()}
-                  className="w-10 h-10 bg-rose-600 hover:bg-rose-700 disabled:bg-zinc-200 text-white disabled:text-zinc-400 rounded-full flex items-center justify-center transition-all active:scale-95 shrink-0"
+                  className="w-10 h-10 bg-[#009664] hover:bg-[#007f54] disabled:bg-zinc-200 text-white disabled:text-zinc-400 rounded-full flex items-center justify-center transition-all active:scale-95 shrink-0"
                 >
                   <Send className="w-4 h-4" />
                 </button>
@@ -303,88 +227,44 @@ export default function ChatWidget() {
             </div>
           </motion.div>
         )}
+      </AnimatePresence>
 
-        {/* ────── WhatsApp View ────── */}
-        {view === 'whatsapp' && (
-          <motion.div
-            key="whatsapp"
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      {/* ────── WhatsApp Floating Pill ────── */}
+      <AnimatePresence>
+        {view === 'closed' && (
+          <motion.a
+            key="whatsapp-pill"
+            initial={{ opacity: 0, y: 15, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="mb-4 w-80 max-w-[calc(100vw-3rem)] origin-bottom-right overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5 flex flex-col"
+            exit={{ opacity: 0, y: 15, scale: 0.8 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            href={`https://wa.me/${phoneNumber}?text=${encodeURIComponent("Bonjour ! Je souhaite obtenir des renseignements.")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-4 mr-2 flex items-center gap-2.5 bg-[#4FDF83] hover:bg-[#40d273] text-white px-5 py-3.5 rounded-full font-semibold text-sm shadow-xl shadow-[#4FDF83]/30 transition-all hover:scale-105 hover:-translate-y-0.5 active:scale-95 duration-200"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between bg-[#075E54] p-4 text-white">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setView('menu')}
-                  className="w-8 h-8 rounded-full hover:bg-white/20 flex items-center justify-center transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4 text-white" />
-                </button>
-                <div className="relative">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20 font-bold text-white text-sm">
-                    K
-                  </div>
-                  <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[#075E54] bg-green-400"></span>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm leading-none">Khalfallah Consulting</h3>
-                  <p className="mt-0.5 text-xs text-emerald-200">En ligne</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setView('closed')}
-                className="rounded-full p-1.5 transition-colors hover:bg-white/20"
-                aria-label="Close chat"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="flex min-h-[120px] flex-col gap-3 p-4 bg-[#ECE5DD]">
-              <div className="self-start max-w-[85%] rounded-2xl rounded-tl-sm bg-white p-3 text-sm shadow-sm text-zinc-800">
-                Bonjour ! 👋 Envoyez-nous un message et nous vous répondrons directement sur WhatsApp.
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="border-t border-zinc-100 bg-[#F0F0F0] p-3">
-              <form onSubmit={handleWhatsAppSend} className="relative flex items-center gap-2">
-                <input
-                  type="text"
-                  value={waMessage}
-                  onChange={(e) => setWaMessage(e.target.value)}
-                  placeholder="Écrivez votre message..."
-                  className="w-full rounded-full bg-white px-4 py-2.5 pr-12 text-sm outline-none transition-colors placeholder:text-zinc-500 focus:ring-2 focus:ring-[#25D366]/30 border border-zinc-200"
-                  autoFocus
-                />
-                <button
-                  type="submit"
-                  disabled={!waMessage.trim()}
-                  className="absolute right-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-[#25D366] text-white transition-all hover:bg-[#20b858] disabled:scale-90 disabled:opacity-50"
-                  aria-label="Send on WhatsApp"
-                >
-                  <Send className="ml-0.5 h-4 w-4" />
-                </button>
-              </form>
-            </div>
-          </motion.div>
+            {/* Phone/WhatsApp Icon matching the user screenshot */}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-white fill-current shrink-0">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+            <span className="font-semibold text-base leading-none">WhatsApp</span>
+          </motion.a>
         )}
       </AnimatePresence>
 
       {/* ────── Floating Action Button ────── */}
       <button
         onClick={toggleWidget}
-        className="group flex h-14 w-14 items-center justify-center rounded-full bg-rose-600 shadow-lg shadow-rose-500/30 transition-all hover:scale-110 hover:shadow-xl hover:shadow-rose-500/40 focus:outline-none focus:ring-4 focus:ring-rose-500/30 active:scale-95"
-        aria-label="Open Contact Options"
+        className="group flex h-14 w-14 items-center justify-center rounded-full bg-[#009664] hover:bg-[#008256] shadow-lg shadow-[#009664]/30 transition-all hover:scale-110 hover:shadow-xl hover:shadow-[#009664]/40 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 active:scale-95 cursor-pointer mr-2 mb-2"
+        aria-label="Toggle Live Chat Assistant"
       >
-        {isOpen ? (
+        {view === 'chat' ? (
           <X className="h-6 w-6 text-white transition-transform duration-200 group-hover:rotate-90" />
         ) : (
-          <MessageCircle className="h-6 w-6 text-white" />
+          /* Chat Speech Bubble outline icon matching the user screenshot */
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-white">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
         )}
       </button>
     </div>
