@@ -22,6 +22,13 @@ const stepDescriptions: Record<number, string> = {
   6: "Constitution du dossier visa, prise de rendez-vous à l'ambassade, préparation à l'entretien et accompagnement jusqu'à l'obtention de votre visa.",
 };
 
+type DocItem = {
+  id: string;
+  name: string;
+  status: 'Approved' | 'Action Needed' | 'Pending';
+  notes?: string;
+};
+
 type Step = {
   stepId: number;
   title: string;
@@ -32,6 +39,8 @@ type Step = {
 type Progress = {
   id: number;
   steps: Step[];
+  documents?: DocItem[];
+  adminNotes?: string;
   totalAmount: number;
   paidAmount: number;
   payments: any[];
@@ -44,8 +53,6 @@ export default function ClientDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    // Check authentication via server-side session endpoint
-    // (httpOnly cookies can't be read by document.cookie)
     fetch('/api/auth/session')
       .then(res => res.json())
       .then(session => {
@@ -55,7 +62,6 @@ export default function ClientDashboard() {
         }
         setUser(session.user);
 
-        // Now fetch the client's file progress
         return fetch('/api/client/progress')
           .then(res => res.json())
           .then(data => {
@@ -79,36 +85,59 @@ export default function ClientDashboard() {
     return 'bg-zinc-100 text-zinc-500 border-zinc-200';
   };
 
+  const getDocStatusBadge = (status: string) => {
+    switch (status) {
+      case 'Approved':
+        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'Action Needed':
+        return 'bg-rose-100 text-rose-700 border-rose-200';
+      case 'Pending':
+      default:
+        return 'bg-amber-100 text-amber-700 border-amber-200';
+    }
+  };
+
+  const defaultDocs: DocItem[] = [
+    { id: 'diploma', name: 'Diplôme & Relevés de notes', status: 'Approved', notes: 'Vérifié par l\'agence' },
+    { id: 'passport', name: 'Passeport valide', status: 'Approved', notes: 'Valide jusqu\'en 2028' },
+    { id: 'translation', name: 'Traductions certifiées', status: 'Action Needed', notes: 'Action requise: fournir le tampon de légalisation' },
+    { id: 'cimea_dov', name: 'CIMEA / Déclaration de valeur', status: 'Pending', notes: 'En attente de traitement' },
+    { id: 'universitaly', name: 'Fiche Universitaly', status: 'Pending', notes: 'En attente de pré-inscription' },
+    { id: 'financial_proof', name: 'Garantie financière & ISEE', status: 'Pending', notes: 'Relevé bancaire 6000€ min' },
+  ];
+
+  const docs = progress?.documents && progress.documents.length > 0 ? progress.documents : defaultDocs;
+
   const completionRate = progress ? Math.round(
     (progress.steps.filter(s => s.status === 'completed').length / progress.steps.length) * 100
   ) : 0;
 
   const remainingPayment = progress ? progress.totalAmount - progress.paidAmount : 0;
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">Chargement de votre espace...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-medium text-zinc-600">Chargement de votre espace client...</div>;
 
   return (
-    <div className="min-h-screen bg-zinc-100">
+    <div className="min-h-screen bg-zinc-100 pb-16">
       {/* Top Nav */}
-      <nav className="bg-white border-b px-8 py-5 flex items-center justify-between sticky top-0 z-50">
+      <nav className="bg-white border-b px-8 py-5 flex items-center justify-between sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="text-3xl">🇹🇳</div>
           <div>
             <div className="font-semibold text-xl tracking-tight">Khalfallah Consulting</div>
-            <div className="text-xs text-emerald-600 -mt-1">ESPACE CLIENT</div>
+            <div className="text-xs text-emerald-600 -mt-1 font-bold">ESPACE ÉTUDIANT</div>
           </div>
         </div>
         
         <div className="flex items-center gap-8">
           <div className="text-sm flex items-center gap-2">
             <div className="w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">👋</div>
-            <span>Bienvenue, {user?.fullName}</span>
+            <span className="font-medium">Bienvenue, {user?.fullName}</span>
           </div>
           <button
             onClick={() => {
               fetch('/api/auth/logout', { method: 'POST' }).then(() => router.push('/login'));
             }}
-            className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900"
+            className="flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 font-medium transition-colors"
           >
             <LogOut className="w-4 h-4" /> Déconnexion
           </button>
@@ -116,17 +145,69 @@ export default function ClientDashboard() {
       </nav>
 
       <div className="max-w-6xl mx-auto px-8 py-10">
-        <div className="flex justify-between items-end mb-10">
+        <div className="flex justify-between items-end mb-8">
           <div>
-            <div className="uppercase text-xs tracking-[2px] text-rose-600 font-medium">Tableau de bord</div>
-            <h1 className="text-5xl font-semibold tracking-tighter">Suivi de votre dossier</h1>
+            <div className="uppercase text-xs tracking-[2px] text-rose-600 font-bold">Tableau de bord</div>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-zinc-900 mt-1">Suivi de votre dossier</h1>
           </div>
           
           <div className="text-right">
-            <div className="text-sm text-zinc-500">Avancement global</div>
-            <div className="text-6xl font-semibold text-emerald-600 tabular-nums">{completionRate}<span className="text-4xl">%</span></div>
+            <div className="text-sm text-zinc-500 font-medium">Avancement global</div>
+            <div className="text-5xl font-bold text-emerald-600 tabular-nums">{completionRate}<span className="text-3xl">%</span></div>
           </div>
         </div>
+
+        {/* ────── Visual 6-Stage Stepper Bar ────── */}
+        <div className="bg-white rounded-3xl p-8 mb-10 border border-zinc-100 shadow-sm">
+          <div className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-6">Progression par étapes (1 à 6)</div>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+            {progress?.steps.map((step) => {
+              const isCompleted = step.status === 'completed';
+              const isInProgress = step.status === 'in-progress';
+              return (
+                <div 
+                  key={step.stepId} 
+                  className={`p-4 rounded-2xl border text-center transition-all ${
+                    isCompleted
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                      : isInProgress
+                      ? 'bg-amber-50 border-amber-200 text-amber-800 shadow-sm ring-2 ring-amber-400/20'
+                      : 'bg-zinc-50 border-zinc-200/60 text-zinc-400'
+                  }`}
+                >
+                  <div className="flex items-center justify-center mb-2">
+                    {isCompleted ? (
+                      <CheckCircle className="w-6 h-6 text-emerald-600" />
+                    ) : (
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                        isInProgress ? 'bg-amber-500 text-white animate-pulse' : 'bg-zinc-200 text-zinc-600'
+                      }`}>
+                        {step.stepId}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs font-bold leading-snug line-clamp-2">{step.title}</div>
+                  <div className="text-[10px] uppercase tracking-wider mt-2 font-semibold">
+                    {isCompleted ? 'Validé' : isInProgress ? 'En cours' : 'À venir'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Admin / Counselor Notes Banner */}
+        {progress?.adminNotes && (
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-3xl p-6 mb-10 shadow-lg flex items-start gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-emerald-100">Notes du conseiller</div>
+              <p className="text-sm font-medium leading-relaxed mt-1 text-white/95">{progress.adminNotes}</p>
+            </div>
+          </div>
+        )}
 
         {/* Payment Status */}
         <div className="bg-white rounded-3xl p-8 mb-10 border border-zinc-100 shadow-sm">
@@ -134,13 +215,13 @@ export default function ClientDashboard() {
             <div className="flex items-center gap-4">
               <div className="text-3xl">💰</div>
               <div>
-                <div className="font-semibold text-lg">État des paiements</div>
-                <div className="text-sm text-zinc-500">Accompagnement complet — 2500 €</div>
+                <div className="font-semibold text-lg text-zinc-900">État des paiements</div>
+                <div className="text-sm text-zinc-500">Accompagnement complet — {progress?.totalAmount || 2500} €</div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-4xl font-semibold text-emerald-600">{progress?.paidAmount} €</div>
-              <div className="text-xs text-zinc-400">PAYÉS / {progress?.totalAmount} €</div>
+              <div className="text-4xl font-semibold text-emerald-600 tabular-nums">{progress?.paidAmount} €</div>
+              <div className="text-xs text-zinc-400 font-medium">PAYÉS / {progress?.totalAmount} €</div>
             </div>
           </div>
           
@@ -152,40 +233,41 @@ export default function ClientDashboard() {
           </div>
           
           {remainingPayment > 0 && (
-            <div className="text-xs text-rose-500 flex items-center gap-1 mt-4">
-              <AlertCircle className="w-3.5 h-3.5" /> {remainingPayment} € restant. Contactez-nous pour payer par tranches.
+            <div className="text-xs text-rose-500 font-medium flex items-center gap-1 mt-4">
+              <AlertCircle className="w-3.5 h-3.5" /> {remainingPayment} € restant. Contactez-nous pour régler en tranches.
             </div>
           )}
         </div>
 
-        {/* Steps */}
+        {/* Main Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-8">
-            <h2 className="font-semibold text-xl mb-6 flex items-center gap-3">
-              <span>ÉTAPES DU DOSSIER</span>
-              <div className="h-px flex-1 bg-gradient-to-r from-zinc-300 to-transparent"></div>
+          {/* Left Column: Detailed Steps */}
+          <div className="lg:col-span-7 space-y-4">
+            <h2 className="font-bold text-lg mb-4 flex items-center gap-3 text-zinc-900">
+              <span>ÉTAPES ET DÉTAILS DE L'ACCOMPAGNEMENT</span>
+              <div className="h-px flex-1 bg-zinc-200"></div>
             </h2>
             
             <div className="space-y-4">
               {progress?.steps.map((step) => {
                 const Icon = stepIcons[step.stepId] || Clock;
                 return (
-                  <div key={step.stepId} className="bg-white border border-zinc-100 rounded-3xl p-8 flex gap-7 items-start group">
-                    <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center ${step.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-400'}`}>
-                      <Icon className="w-6 h-6" />
+                  <div key={step.stepId} className="bg-white border border-zinc-100 rounded-3xl p-6 flex gap-5 items-start group shadow-sm">
+                    <div className={`w-11 h-11 rounded-2xl flex-shrink-0 flex items-center justify-center ${step.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : step.status === 'in-progress' ? 'bg-amber-100 text-amber-600' : 'bg-zinc-100 text-zinc-400'}`}>
+                      <Icon className="w-5 h-5" />
                     </div>
                     
                     <div className="flex-1 pt-1">
                       <div className="flex items-center justify-between">
-                        <div className="font-medium text-xl">{step.title}</div>
-                        <span className={`text-xs px-5 py-2 rounded-3xl border shrink-0 ${getStatusColor(step.status)}`}>
+                        <div className="font-semibold text-base text-zinc-900">{step.title}</div>
+                        <span className={`text-xs px-3 py-1 rounded-full border font-semibold shrink-0 ${getStatusColor(step.status)}`}>
                           {step.status === 'completed' ? 'TERMINÉ' : step.status === 'in-progress' ? 'EN COURS' : 'À FAIRE'}
                         </span>
                       </div>
                       {stepDescriptions[step.stepId] && (
-                        <p className="mt-2 text-sm text-zinc-400 leading-relaxed">{stepDescriptions[step.stepId]}</p>
+                        <p className="mt-2 text-xs text-zinc-500 leading-relaxed">{stepDescriptions[step.stepId]}</p>
                       )}
-                      {step.notes && <div className="mt-3 text-sm text-zinc-500 bg-zinc-50 p-4 rounded-2xl">{step.notes}</div>}
+                      {step.notes && <div className="mt-3 text-xs text-zinc-600 bg-zinc-50 p-3 rounded-xl border border-zinc-100 font-medium">{step.notes}</div>}
                     </div>
                   </div>
                 );
@@ -193,38 +275,40 @@ export default function ClientDashboard() {
             </div>
           </div>
 
-          <div className="lg:col-span-4 space-y-6">
-            {/* Messages Section */}
-            <DashboardMessages />
+          {/* Right Column: Documents Tracker & Messaging */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Document Checklist Tracker */}
+            <div className="bg-white rounded-3xl p-7 shadow-sm border border-zinc-100">
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold text-base text-zinc-900">Documents & Pièces Requises</h3>
+                <span className="text-xs text-zinc-400 font-medium">{docs.filter(d => d.status === 'Approved').length} / {docs.length} validés</span>
+              </div>
 
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-zinc-100">
-              <h3 className="font-semibold mb-6 text-zinc-900">Documents à préparer</h3>
-              <ul className="text-xs space-y-3 text-zinc-600">
-                <li className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></div>
-                  <span>Diplôme + relevés de notes</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></div>
-                  <span>Passeport valide</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></div>
-                  <span>Preuve de ressources financières</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></div>
-                  <span>Photo d'identité</span>
-                </li>
-              </ul>
+              <div className="space-y-3">
+                {docs.map((doc) => (
+                  <div key={doc.id} className="p-3.5 rounded-2xl border border-zinc-100 bg-zinc-50/60 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-zinc-900 truncate">{doc.name}</div>
+                      {doc.notes && <div className="text-[11px] text-zinc-400 truncate mt-0.5">{doc.notes}</div>}
+                    </div>
+                    <span className={`text-[10px] px-2.5 py-1 rounded-full border font-bold shrink-0 ${getDocStatusBadge(doc.status)}`}>
+                      {doc.status === 'Approved' ? 'Approuvé' : doc.status === 'Action Needed' ? 'Action requise' : 'En attente'}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-zinc-100">
-              <h3 className="font-semibold mb-4 text-zinc-900">Contact rapide</h3>
-              <div className="border border-dashed border-rose-200 bg-rose-50/50 rounded-2xl p-6 text-center">
-                <div className="text-3xl mb-3">📲</div>
-                <div className="font-medium text-sm text-zinc-800">WhatsApp Conseiller</div>
-                <a href="https://wa.me/21698123456" target="_blank" className="text-rose-600 font-semibold text-sm hover:underline mt-1 block">+216 98 123 456</a>
+            {/* Client Messaging UI */}
+            <DashboardMessages />
+
+            {/* Quick Contact Card */}
+            <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100">
+              <h3 className="font-bold text-sm mb-3 text-zinc-900">Assistance WhatsApp</h3>
+              <div className="border border-dashed border-rose-200 bg-rose-50/50 rounded-2xl p-5 text-center">
+                <div className="text-2xl mb-2">📲</div>
+                <div className="font-medium text-xs text-zinc-700">Ligne directe étudiant</div>
+                <a href="https://wa.me/21627477123" target="_blank" rel="noopener noreferrer" className="text-rose-600 font-bold text-sm hover:underline mt-1 block">+216 27 477 123</a>
               </div>
             </div>
           </div>

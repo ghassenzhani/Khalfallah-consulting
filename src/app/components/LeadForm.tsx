@@ -1,7 +1,17 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { Loader2, CheckCircle2, Send, Sparkles } from 'lucide-react';
+import { Loader2, CheckCircle2, Send, Sparkles, Calendar, GraduationCap } from 'lucide-react';
+import * as z from 'zod';
+
+const formSchema = z.object({
+  fullName: z.string().min(3, "Le nom complet est requis (min 3 caractères)"),
+  email: z.string().email("Adresse email invalide"),
+  phone: z.string().min(8, "Numéro de téléphone invalide (min 8 chiffres)"),
+  desiredDegree: z.string().optional(),
+  course: z.string().optional(),
+  message: z.string().optional(),
+});
 
 type FormStatus = 'idle' | 'submitting' | 'success';
 
@@ -10,29 +20,38 @@ export default function LeadForm() {
     fullName: '',
     phone: '',
     email: '',
-    course: '',
+    desiredDegree: 'Licence (Laurea Triennale)',
+    course: 'universities',
     message: '',
   });
 
   const [status, setStatus] = useState<FormStatus>('idle');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  const degrees = [
+    { value: 'Licence (Laurea Triennale)', label: 'Licence / Bachelor (3 ans)' },
+    { value: 'Master (Laurea Magistrale)', label: 'Master (2 ans)' },
+    { value: 'Médecine / Chirurgie (Single-Cycle)', label: 'Médecine / Pharmacie (5-6 ans)' },
+    { value: 'Doctorat (PhD)', label: 'Doctorat / PhD' },
+    { value: 'Autre / Diagnostic', label: 'Autre / Diagnostic personnalisé' },
+  ];
+
   const courses = [
-    { value: 'trial', label: 'Diagnostic gratuit (Évaluation de dossier)' },
     { value: 'universities', label: "Choix d'université & Candidature" },
     { value: 'visa', label: 'Préparation Visa Étudiant Italie' },
     { value: 'dsu', label: 'Bourse DSU & Logement Étudiant' },
     { value: 'documents', label: 'Légalisation & Traductions de documents' },
-    { value: 'autre', label: 'Autre demande' },
+    { value: 'trial', label: 'Diagnostic gratuit (Évaluation de dossier)' },
   ];
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
-    // Validate required fields (as in MESSAGING_GUIDE.md)
-    if (!formData.fullName.trim() || !formData.phone.trim()) {
-      setErrorMsg('Veuillez remplir votre nom et votre numéro de téléphone.');
+    // Validate using Zod schema
+    const validation = formSchema.safeParse(formData);
+    if (!validation.success) {
+      setErrorMsg(validation.error.issues[0].message);
       return;
     }
 
@@ -48,13 +67,15 @@ export default function LeadForm() {
           fullName: formData.fullName,
           phone: formData.phone,
           email: formData.email,
+          desiredDegree: formData.desiredDegree,
+          notes: formData.message,
           subject: formData.course,
           message: formData.message,
         }),
       });
 
-      // 2. Simulate 1.2s network delay (as specified in MESSAGING_GUIDE.md)
-      await new Promise((resolve) => setTimeout(resolve, 1200));
+      // 2. Network delay simulation
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       if (res.ok) {
         // 3. Show success state
@@ -65,17 +86,18 @@ export default function LeadForm() {
           fullName: '',
           phone: '',
           email: '',
-          course: '',
+          desiredDegree: 'Licence (Laurea Triennale)',
+          course: 'universities',
           message: '',
         });
 
-        // 4. Return to idle (form) after 3 seconds (reversible state machine)
+        // 4. Return to idle after 4 seconds
         setTimeout(() => {
           setStatus('idle');
-        }, 3000);
+        }, 4000);
       } else {
         setStatus('idle');
-        setErrorMsg('Une erreur est survenue. Veuillez réessayer.');
+        setErrorMsg('Une erreur est survenue lors de l\'envoi de votre demande.');
       }
     } catch (err) {
       console.error(err);
@@ -92,33 +114,33 @@ export default function LeadForm() {
             <CheckCircle2 className="w-10 h-10 text-emerald-600" />
           </div>
           <h3 className="text-3xl font-bold text-zinc-900 tracking-tight mb-2">
-            Merci !
+            Demande enregistrée !
           </h3>
           <p className="text-zinc-600 max-w-sm mx-auto text-base">
-            Votre message a été envoyé avec succès. Nous vous contacterons dans les plus brefs délais.
+            Votre rendez-vous a été créé avec le statut <strong className="text-amber-600 font-semibold">PENDING</strong>. Notre équipe va examiner votre dossier et vous envoyer vos identifiants d'accès.
           </p>
           <div className="mt-8 flex items-center justify-center gap-2 text-xs text-zinc-400 font-medium">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span>Retour automatique au formulaire dans 3 secondes...</span>
+            <span>Réinitialisation dans 4 secondes...</span>
           </div>
         </div>
       ) : (
         <>
           <div className="mb-8">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-50 border border-rose-100 text-rose-600 text-xs font-semibold uppercase tracking-wider mb-3">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Contact Direct</span>
+              <Calendar className="w-3.5 h-3.5" />
+              <span>Demande de Rendez-vous</span>
             </div>
             <h2 className="text-3xl font-bold text-zinc-900 tracking-tight">
-              Envoyez-nous un message
+              Prenez rendez-vous avec un conseiller
             </h2>
             <p className="text-zinc-500 mt-2 text-sm md:text-base">
-              Remplissez le formulaire ci-dessous et nous vous répondrons sous 24 heures.
+              Remplissez les informations ci-dessous pour ouvrir votre dossier étudiant.
             </p>
           </div>
 
           {errorMsg && (
-            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-2xl">
+            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-2xl font-medium">
               {errorMsg}
             </div>
           )}
@@ -127,7 +149,7 @@ export default function LeadForm() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
                 <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
-                  Votre nom <span className="text-rose-500">*</span>
+                  Nom complet <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -141,7 +163,7 @@ export default function LeadForm() {
 
               <div>
                 <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
-                  Votre téléphone <span className="text-rose-500">*</span>
+                  Téléphone / WhatsApp <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="tel"
@@ -156,10 +178,11 @@ export default function LeadForm() {
 
             <div>
               <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
-                Votre email
+                Adresse Email <span className="text-rose-500">*</span>
               </label>
               <input
                 type="email"
+                required
                 value={formData.email}
                 onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
                 placeholder="votre.email@exemple.com"
@@ -167,33 +190,51 @@ export default function LeadForm() {
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
-                Service / Sujet concerné
-              </label>
-              <select
-                value={formData.course}
-                onChange={(e) => setFormData((p) => ({ ...p, course: e.target.value }))}
-                className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/10 rounded-2xl outline-none text-sm text-zinc-900 transition-all appearance-none bg-[url('data:image/svg+xml;utf8,<svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%2371717a%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22><polyline%20points=%226%209%2012%2015%2018%209%22/></svg>')] bg-no-repeat bg-[right_1.25rem_center] bg-[length:1rem]"
-              >
-                <option value="">Sélectionnez un service</option>
-                {courses.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
+                  Niveau / Diplôme visé
+                </label>
+                <select
+                  value={formData.desiredDegree}
+                  onChange={(e) => setFormData((p) => ({ ...p, desiredDegree: e.target.value }))}
+                  className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/10 rounded-2xl outline-none text-sm text-zinc-900 transition-all appearance-none bg-[url('data:image/svg+xml;utf8,<svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%2371717a%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22><polyline%20points=%226%209%2012%2015%2018%209%22/></svg>')] bg-no-repeat bg-[right_1.25rem_center] bg-[length:1rem]"
+                >
+                  {degrees.map((d) => (
+                    <option key={d.value} value={d.value}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
+                  Service principal
+                </label>
+                <select
+                  value={formData.course}
+                  onChange={(e) => setFormData((p) => ({ ...p, course: e.target.value }))}
+                  className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/10 rounded-2xl outline-none text-sm text-zinc-900 transition-all appearance-none bg-[url('data:image/svg+xml;utf8,<svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%2371717a%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22><polyline%20points=%226%209%2012%2015%2018%209%22/></svg>')] bg-no-repeat bg-[right_1.25rem_center] bg-[length:1rem]"
+                >
+                  {courses.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
-                Votre message (optionnel)
+                Notes ou questions complémentaires
               </label>
               <textarea
-                rows={4}
+                rows={3}
                 value={formData.message}
                 onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
-                placeholder="Expliquez-nous brièvement votre projet ou posez vos questions..."
+                placeholder="Précisez votre filière, la ville préférée ou toute question sur votre dossier..."
                 className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/10 rounded-2xl outline-none text-sm text-zinc-900 transition-all resize-y placeholder:text-zinc-400"
               ></textarea>
             </div>
@@ -206,12 +247,12 @@ export default function LeadForm() {
               {status === 'submitting' ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Envoi en cours...</span>
+                  <span>Enregistrement en cours...</span>
                 </>
               ) : (
                 <>
                   <Send className="w-4 h-4" />
-                  <span>Envoyer le message</span>
+                  <span>Demander un rendez-vous (Statut PENDING)</span>
                 </>
               )}
             </button>

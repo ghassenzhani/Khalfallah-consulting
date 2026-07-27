@@ -11,17 +11,20 @@ export async function POST(request: NextRequest) {
       fullName: body.fullName,
       email: body.email,
       phone: body.phone,
+      desiredDegree: body.desiredDegree || body.course || null,
+      notes: body.notes || body.message || null,
       appointmentType: body.appointmentType || null,
       appointmentDate: body.appointmentDate || null,
       appointmentTime: body.appointmentTime || null,
-      subject: body.subject || null,
-      message: body.message || null,
+      subject: body.subject || body.course || null,
+      message: body.message || body.notes || null,
+      status: 'PENDING',
     }).returning();
 
     return NextResponse.json({ 
       success: true, 
       leadId: newLead[0].id,
-      message: "Votre demande a été enregistrée avec succès. Un consultant vous contactera sous 24h."
+      message: "Votre demande de rendez-vous a été enregistrée avec succès (Statut: PENDING)."
     });
   } catch (error) {
     console.error('Lead creation error:', error);

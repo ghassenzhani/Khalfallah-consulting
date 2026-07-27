@@ -14,6 +14,8 @@ type Lead = {
   fullName: string;
   email: string;
   phone: string;
+  desiredDegree?: string;
+  notes?: string;
   appointmentType: string;
   appointmentDate: string;
   appointmentTime: string;
@@ -49,7 +51,7 @@ export default function AdminLeadsPage() {
   const [createForm, setCreateForm] = useState({
     fullName: '', email: '', phone: '', currentLevel: '', fieldOfStudy: '', leadId: 0
   });
-  const [createdAccount, setCreatedAccount] = useState<{ email: string; password: string } | null>(null);
+  const [createdAccount, setCreatedAccount] = useState<{ email: string; password: string; emailSent?: boolean } | null>(null);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
   const router = useRouter();
@@ -117,10 +119,47 @@ export default function AdminLeadsPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const approveLead = async (lead: Lead) => {
+    setCreating(true);
+    try {
+      const res = await fetch('/api/admin/approve-client', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: lead.id,
+          fullName: lead.fullName,
+          email: lead.email,
+          phone: lead.phone,
+          desiredDegree: lead.desiredDegree || lead.subject || 'Licence',
+        }),
+      });
+      const data = await res.json();
+      setCreating(false);
+
+      if (res.ok) {
+        setCreatedAccount({ 
+          email: data.client.email, 
+          password: data.generatedPassword,
+          emailSent: data.emailSent 
+        });
+        setShowCreateModal(true);
+        fetchAll();
+      } else {
+        alert(data.error || 'Erreur lors de l\'approbation');
+      }
+    } catch (err) {
+      console.error(err);
+      setCreating(false);
+      alert('Erreur réseau lors de l\'approbation');
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
+      case 'APPROVED':
       case 'converted': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-      case 'contacted': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+      case 'REJECTED': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+      case 'PENDING':
       default: return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
     }
   };
@@ -320,8 +359,8 @@ export default function AdminLeadsPage() {
                         <td className="py-5 px-6 text-sm text-zinc-400 max-w-[200px] truncate">{lead.subject || lead.appointmentType || '-'}</td>
                         <td className="py-5 px-6">
                           <span className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border ${getStatusBadge(lead.status)}`}>
-                            {lead.status === 'converted' ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-                            {lead.status === 'converted' ? 'Converti' : lead.status === 'contacted' ? 'Contacté' : 'Nouveau'}
+                            {lead.status === 'APPROVED' || lead.status === 'converted' ? <Check className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                            {lead.status === 'APPROVED' ? 'Approuvé' : lead.status === 'converted' ? 'Converti' : lead.status === 'REJECTED' ? 'Refusé' : 'En attente (PENDING)'}
                           </span>
                         </td>
                         <td className="py-5 px-6">
@@ -337,9 +376,9 @@ export default function AdminLeadsPage() {
                             >
                               <MessageSquare className="w-3 h-3" /> WhatsApp
                             </a>
-                            {lead.status !== 'converted' && (
-                              <button onClick={() => openCreateFromLead(lead)} className="px-3 py-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center gap-1.5 transition-colors">
-                                <UserPlus className="w-3 h-3" /> Créer compte
+                            {lead.status !== 'APPROVED' && lead.status !== 'converted' && (
+                              <button onClick={() => approveLead(lead)} className="px-3 py-2 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-xl flex items-center gap-1.5 transition-colors shadow-sm">
+                                <Check className="w-3 h-3" /> Approuver le dossier
                               </button>
                             )}
                           </div>
@@ -366,8 +405,19 @@ export default function AdminLeadsPage() {
             <div className="p-8">
               {createdAccount ? (
                 <div className="space-y-6">
+                  {createdAccount.emailSent ? (
+                    <div className="text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Email de bienvenue avec identifiants envoyé via Resend à {createdAccount.email}.</span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-amber-400 font-medium bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl">
+                      ℹ️ Note : Le compte a été activé. Vous pouvez transmettre les identifiants ci-dessous manuellement.
+                    </div>
+                  )}
+
                   <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-5">
-                    <p className="text-emerald-400 text-sm font-medium mb-4">Le compte a été créé avec succès. Envoyez ces identifiants au client :</p>
+                    <p className="text-emerald-400 text-sm font-medium mb-4">Identifiants d'accès client générés :</p>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between bg-zinc-800 rounded-lg px-4 py-3">
                         <div>
@@ -377,14 +427,14 @@ export default function AdminLeadsPage() {
                       </div>
                       <div className="flex items-center justify-between bg-zinc-800 rounded-lg px-4 py-3">
                         <div>
-                          <div className="text-[10px] text-zinc-500 uppercase">Mot de passe</div>
+                          <div className="text-[10px] text-zinc-500 uppercase">Mot de passe temporaire (MDP)</div>
                           <div className="text-sm font-mono text-rose-400 font-bold">{createdAccount.password}</div>
                         </div>
                       </div>
                     </div>
                   </div>
                   <button onClick={copyCredentials} className="w-full py-3 bg-white text-black rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:bg-zinc-200 transition-colors">
-                    {copied ? <><Check className="w-4 h-4" /> Copié !</> : <><Copy className="w-4 h-4" /> Copier le message à envoyer au client</>}
+                    {copied ? <><Check className="w-4 h-4" /> Copié !</> : <><Copy className="w-4 h-4" /> Copier le message d'accès pour le client</>}
                   </button>
                 </div>
               ) : (
