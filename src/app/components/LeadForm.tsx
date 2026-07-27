@@ -1,237 +1,217 @@
 'use client';
 
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Loader2, CheckCircle2, Calendar } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { Loader2, CheckCircle2, Send, Sparkles } from 'lucide-react';
 
-const formSchema = z.object({
-  fullName: z.string().min(3, "Le nom complet est requis"),
-  email: z.string().email("Email invalide"),
-  phone: z.string().min(8, "Numéro de téléphone requis"),
-  appointmentType: z.string().min(1, "Le type de rendez-vous est requis"),
-  appointmentDate: z.string().min(1, "La date est requise"),
-  appointmentTime: z.string().min(1, "L'horaire est requis"),
-  subject: z.string().min(1, "Le sujet est requis"),
-  message: z.string().optional(),
-});
-
-type FormData = z.infer<typeof formSchema>;
+type FormStatus = 'idle' | 'submitting' | 'success';
 
 export default function LeadForm() {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  const [formData, setFormData] = useState({
+    fullName: '',
+    phone: '',
+    email: '',
+    course: '',
+    message: '',
   });
 
-  const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
-    
+  const [status, setStatus] = useState<FormStatus>('idle');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const courses = [
+    { value: 'trial', label: 'Diagnostic gratuit (Évaluation de dossier)' },
+    { value: 'universities', label: "Choix d'université & Candidature" },
+    { value: 'visa', label: 'Préparation Visa Étudiant Italie' },
+    { value: 'dsu', label: 'Bourse DSU & Logement Étudiant' },
+    { value: 'documents', label: 'Légalisation & Traductions de documents' },
+    { value: 'autre', label: 'Autre demande' },
+  ];
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setErrorMsg(null);
+
+    // Validate required fields (as in MESSAGING_GUIDE.md)
+    if (!formData.fullName.trim() || !formData.phone.trim()) {
+      setErrorMsg('Veuillez remplir votre nom et votre numéro de téléphone.');
+      return;
+    }
+
+    // 1. Show loading state
+    setStatus('submitting');
+
     try {
-      const response = await fetch('/api/leads', {
+      // Send data to API endpoint
+      const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          phone: formData.phone,
+          email: formData.email,
+          subject: formData.course,
+          message: formData.message,
+        }),
       });
-      
-      if (response.ok) {
-        setSubmitted(true);
-        reset();
-        setTimeout(() => setSubmitted(false), 5000);
+
+      // 2. Simulate 1.2s network delay (as specified in MESSAGING_GUIDE.md)
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      if (res.ok) {
+        // 3. Show success state
+        setStatus('success');
+
+        // Reset form data
+        setFormData({
+          fullName: '',
+          phone: '',
+          email: '',
+          course: '',
+          message: '',
+        });
+
+        // 4. Return to idle (form) after 3 seconds (reversible state machine)
+        setTimeout(() => {
+          setStatus('idle');
+        }, 3000);
       } else {
-        alert("Une erreur est survenue. Veuillez réessayer.");
+        setStatus('idle');
+        setErrorMsg('Une erreur est survenue. Veuillez réessayer.');
       }
-    } catch (error) {
-      console.error(error);
-      alert("Erreur de connexion. Veuillez vérifier votre connexion internet.");
-    } finally {
-      setIsSubmitting(false);
+    } catch (err) {
+      console.error(err);
+      setStatus('idle');
+      setErrorMsg('Erreur de connexion. Veuillez vérifier votre réseau.');
     }
   };
 
-  // Generate time slots
-  const timeSlots = [
-    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-    "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"
-  ];
-
-  // Appointment subjects
-  const subjects = [
-    { value: "diagnostic", label: "Diagnostic gratuit" },
-    { value: "visa", label: "Préparation visa étudiant" },
-    { value: "scholarship", label: "Bourse DSU & logement" },
-    { value: "universities", label: "Choix d'université" },
-    { value: "documents", label: "Documents & traductions" },
-    { value: "autre", label: "Autre demande" },
-  ];
-
-  const appointmentTypes = [
-    { value: "telephone", label: "Appel téléphonique" },
-    { value: "visio", label: "Visio-conférence (Zoom/Meet)" },
-    { value: "presentiel", label: "Rendez-vous en agence (Tunis)" },
-  ];
-
   return (
-    <div className="bg-white rounded-3xl shadow-2xl shadow-zinc-900/10 p-10 md:p-14 max-w-3xl mx-auto">
-      {submitted ? (
-        <div className="py-16 text-center">
-          <div className="mx-auto w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-10 h-10 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-            </svg>
+    <div className="contact-form-card bg-white rounded-3xl shadow-xl shadow-zinc-900/5 border border-zinc-100 p-8 md:p-12 transition-all">
+      {status === 'success' ? (
+        <div className="text-center py-12 px-4 transition-all animate-in fade-in duration-300">
+          <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-emerald-100">
+            <CheckCircle2 className="w-10 h-10 text-emerald-600" />
           </div>
-          <h3 className="text-3xl font-semibold text-zinc-900 mb-3">Rendez-vous confirmé !</h3>
-          <p className="text-zinc-600 max-w-md mx-auto">
-            Merci pour votre demande. Notre équipe vous contactera dans les plus brefs délais pour confirmer les détails de votre rendez-vous.
+          <h3 className="text-3xl font-bold text-zinc-900 tracking-tight mb-2">
+            Merci !
+          </h3>
+          <p className="text-zinc-600 max-w-sm mx-auto text-base">
+            Votre message a été envoyé avec succès. Nous vous contacterons dans les plus brefs délais.
           </p>
+          <div className="mt-8 flex items-center justify-center gap-2 text-xs text-zinc-400 font-medium">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span>Retour automatique au formulaire dans 3 secondes...</span>
+          </div>
         </div>
       ) : (
         <>
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-semibold text-zinc-900 tracking-tight">
-              Prenez rendez-vous avec un expert
+          <div className="mb-8">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-rose-50 border border-rose-100 text-rose-600 text-xs font-semibold uppercase tracking-wider mb-3">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Contact Direct</span>
+            </div>
+            <h2 className="text-3xl font-bold text-zinc-900 tracking-tight">
+              Envoyez-nous un message
             </h2>
-            <p className="text-zinc-500 mt-3 text-sm md:text-base">
-              Sélectionnez une plage horaire qui vous convient
+            <p className="text-zinc-500 mt-2 text-sm md:text-base">
+              Remplissez le formulaire ci-dessous et nous vous répondrons sous 24 heures.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-7">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Nom complet <span className="text-rose-500">*</span>
-                </label>
-                <input 
-                  {...register("fullName")} 
-                  type="text" 
-                  className="w-full px-6 py-4 bg-zinc-50 border border-zinc-200 focus:border-rose-300 focus:ring-4 focus:ring-rose-50 rounded-2xl outline-none text-sm transition-all" 
-                  placeholder="Votre nom et prénom" 
-                />
-                {errors.fullName && <p className="text-rose-500 text-xs mt-1.5">{errors.fullName.message}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Email <span className="text-rose-500">*</span>
-                </label>
-                <input 
-                  {...register("email")} 
-                  type="email" 
-                  className="w-full px-6 py-4 bg-zinc-50 border border-zinc-200 focus:border-rose-300 focus:ring-4 focus:ring-rose-50 rounded-2xl outline-none text-sm transition-all" 
-                  placeholder="votre@email.com" 
-                />
-                {errors.email && <p className="text-rose-500 text-xs mt-1.5">{errors.email.message}</p>}
-              </div>
+          {errorMsg && (
+            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-2xl">
+              {errorMsg}
             </div>
+          )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form id="contact-form" onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Téléphone <span className="text-rose-500">*</span>
+                <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
+                  Votre nom <span className="text-rose-500">*</span>
                 </label>
-                <input 
-                  {...register("phone")} 
-                  type="tel" 
-                  className="w-full px-6 py-4 bg-zinc-50 border border-zinc-200 focus:border-rose-300 focus:ring-4 focus:ring-rose-50 rounded-2xl outline-none text-sm transition-all" 
-                  placeholder="+216 XX XXX XXX" 
+                <input
+                  type="text"
+                  required
+                  value={formData.fullName}
+                  onChange={(e) => setFormData((p) => ({ ...p, fullName: e.target.value }))}
+                  placeholder="Ex: Mohamed Ben Salem"
+                  className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/10 rounded-2xl outline-none text-sm text-zinc-900 transition-all placeholder:text-zinc-400"
                 />
-                {errors.phone && <p className="text-rose-500 text-xs mt-1.5">{errors.phone.message}</p>}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Type de rendez-vous <span className="text-rose-500">*</span>
+                <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
+                  Votre téléphone <span className="text-rose-500">*</span>
                 </label>
-                <select 
-                  {...register("appointmentType")}
-                  className="w-full px-6 py-4 bg-zinc-50 border border-zinc-200 focus:border-rose-300 focus:ring-4 focus:ring-rose-50 rounded-2xl outline-none text-sm transition-all appearance-none bg-[url('data:image/svg+xml;utf8,<svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%2371717a%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22><polyline%20points=%226%209%2012%2015%2018%209%22/></svg>')] bg-no-repeat bg-[right_1.5rem_center] bg-[length:1rem]"
-                >
-                  <option value="">Sélectionner</option>
-                  {appointmentTypes.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-                {errors.appointmentType && <p className="text-rose-500 text-xs mt-1.5">{errors.appointmentType.message}</p>}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Date souhaitée <span className="text-rose-500">*</span>
-                </label>
-                <input 
-                  {...register("appointmentDate")} 
-                  type="date"
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-6 py-4 bg-zinc-50 border border-zinc-200 focus:border-rose-300 focus:ring-4 focus:ring-rose-50 rounded-2xl outline-none text-sm transition-all" 
+                <input
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
+                  placeholder="+216 XX XXX XXX"
+                  className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/10 rounded-2xl outline-none text-sm text-zinc-900 transition-all placeholder:text-zinc-400"
                 />
-                {errors.appointmentDate && <p className="text-rose-500 text-xs mt-1.5">{errors.appointmentDate.message}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Horaire <span className="text-rose-500">*</span>
-                </label>
-                <select 
-                  {...register("appointmentTime")}
-                  className="w-full px-6 py-4 bg-zinc-50 border border-zinc-200 focus:border-rose-300 focus:ring-4 focus:ring-rose-50 rounded-2xl outline-none text-sm transition-all appearance-none bg-[url('data:image/svg+xml;utf8,<svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%2371717a%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22><polyline%20points=%226%209%2012%2015%2018%209%22/></svg>')] bg-no-repeat bg-[right_1.5rem_center] bg-[length:1rem]"
-                >
-                  <option value="">Sélectionner</option>
-                  {timeSlots.map(slot => (
-                    <option key={slot} value={slot}>{slot}</option>
-                  ))}
-                </select>
-                {errors.appointmentTime && <p className="text-rose-500 text-xs mt-1.5">{errors.appointmentTime.message}</p>}
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
-                Sujet du rendez-vous <span className="text-rose-500">*</span>
+              <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
+                Votre email
               </label>
-              <select 
-                {...register("subject")}
-                className="w-full px-6 py-4 bg-zinc-50 border border-zinc-200 focus:border-rose-300 focus:ring-4 focus:ring-rose-50 rounded-2xl outline-none text-sm transition-all appearance-none bg-[url('data:image/svg+xml;utf8,<svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%2371717a%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22><polyline%20points=%226%209%2012%2015%2018%209%22/></svg>')] bg-no-repeat bg-[right_1.5rem_center] bg-[length:1rem]"
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+                placeholder="votre.email@exemple.com"
+                className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/10 rounded-2xl outline-none text-sm text-zinc-900 transition-all placeholder:text-zinc-400"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
+                Service / Sujet concerné
+              </label>
+              <select
+                value={formData.course}
+                onChange={(e) => setFormData((p) => ({ ...p, course: e.target.value }))}
+                className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/10 rounded-2xl outline-none text-sm text-zinc-900 transition-all appearance-none bg-[url('data:image/svg+xml;utf8,<svg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%20fill=%22none%22%20stroke=%22%2371717a%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22><polyline%20points=%226%209%2012%2015%2018%209%22/></svg>')] bg-no-repeat bg-[right_1.25rem_center] bg-[length:1rem]"
               >
-                <option value="">Choisir le sujet</option>
-                {subjects.map(s => (
-                  <option key={s.value} value={s.value}>{s.label}</option>
+                <option value="">Sélectionnez un service</option>
+                {courses.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
                 ))}
               </select>
-              {errors.subject && <p className="text-rose-500 text-xs mt-1.5">{errors.subject.message}</p>}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
-                Informations supplémentaires
+              <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
+                Votre message (optionnel)
               </label>
-              <textarea 
-                {...register("message")} 
-                rows={5}
-                className="w-full px-6 py-4 bg-zinc-50 border border-zinc-200 focus:border-rose-300 focus:ring-4 focus:ring-rose-50 rounded-2xl outline-none text-sm resize-y transition-all" 
-                placeholder="Parlez-nous de votre projet, votre niveau, la ville ou université visée, vos questions..."
+              <textarea
+                rows={4}
+                value={formData.message}
+                onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
+                placeholder="Expliquez-nous brièvement votre projet ou posez vos questions..."
+                className="w-full px-5 py-3.5 bg-zinc-50 border border-zinc-200 focus:border-rose-400 focus:ring-4 focus:ring-rose-500/10 rounded-2xl outline-none text-sm text-zinc-900 transition-all resize-y placeholder:text-zinc-400"
               ></textarea>
             </div>
 
-            <button 
-              type="submit" 
-              disabled={isSubmitting}
-              className="w-full py-5 bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 disabled:opacity-70 text-white font-semibold text-base rounded-2xl transition-all active:scale-[0.985] flex items-center justify-center gap-3 shadow-xl shadow-rose-500/30"
+            <button
+              type="submit"
+              disabled={status === 'submitting'}
+              className="btn-submit w-full py-4 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600 disabled:opacity-75 text-white font-semibold text-sm rounded-2xl transition-all shadow-lg shadow-rose-500/25 active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
-              {isSubmitting ? (
+              {status === 'submitting' ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Envoi en cours...</span>
                 </>
               ) : (
                 <>
-                  <Calendar className="w-5 h-5" />
-                  <span>Confirmer le rendez-vous</span>
+                  <Send className="w-4 h-4" />
+                  <span>Envoyer le message</span>
                 </>
               )}
             </button>
@@ -241,3 +221,4 @@ export default function LeadForm() {
     </div>
   );
 }
+
