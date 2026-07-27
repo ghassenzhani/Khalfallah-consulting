@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { GraduationCap, FileText, Building, Award, Home, Plane, CheckCircle, Clock, AlertCircle, LogOut, MessageSquare, Send, Sparkles, ShieldCheck, CheckCheck, User, Loader2 } from 'lucide-react';
