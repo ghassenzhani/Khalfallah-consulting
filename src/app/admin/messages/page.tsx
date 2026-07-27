@@ -31,7 +31,6 @@ function AdminMessagesContent() {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [adminId, setAdminId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -81,9 +80,6 @@ function AdminMessagesContent() {
             }))
           : []
       );
-      if (data.currentUserId) {
-        setAdminId(Number(data.currentUserId));
-      }
     }
   };
 
@@ -248,7 +244,7 @@ function AdminMessagesContent() {
                 ) : (
                   <>
                     {messages.map((msg, i) => {
-                      const isAdmin = adminId !== null ? msg.senderId === adminId : selectedClientId !== null ? msg.senderId !== selectedClientId : false;
+                      const isAdmin = selectedClientId !== null ? msg.senderId !== selectedClientId : false;
                       const showDate = i === 0 || formatDate(msg.createdAt) !== formatDate(messages[i - 1].createdAt);
                       return (
                         <div key={msg.id}>
