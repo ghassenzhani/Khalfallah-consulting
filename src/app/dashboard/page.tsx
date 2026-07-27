@@ -322,6 +322,7 @@ function DashboardMessages({ currentUser }: { currentUser: any }) {
   const [msgs, setMsgs] = useState<{id: number; senderId: number; content: string; createdAt: string}[]>([]);
   const [newMsg, setNewMsg] = useState('');
   const [adminId, setAdminId] = useState<number | null>(null);
+  const [myId, setMyId] = useState<number | null>(null);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -340,10 +341,16 @@ function DashboardMessages({ currentUser }: { currentUser: any }) {
       const res = await fetch('/api/client/messages');
       if (res.ok) {
         const data = await res.json();
-        setMsgs(data);
-        if (data.length > 0) {
-          // Find the actual admin sender Id (any sender who is NOT the logged-in client)
-          const adminMsg = data.find((m: any) => m.senderId !== Number(currentUser?.id));
+        const messageList = data.messages || data;
+        const serverUserId = data.currentUserId;
+        
+        setMsgs(messageList);
+        if (serverUserId) {
+          setMyId(serverUserId);
+        }
+        
+        if (messageList.length > 0 && serverUserId) {
+          const adminMsg = messageList.find((m: any) => m.senderId !== serverUserId);
           if (adminMsg) {
             setAdminId(adminMsg.senderId);
           }
@@ -432,7 +439,7 @@ function DashboardMessages({ currentUser }: { currentUser: any }) {
           </div>
         ) : (
           msgs.map((msg) => {
-            const isMe = msg.senderId === Number(currentUser?.id);
+            const isMe = myId !== null ? msg.senderId === myId : msg.senderId === Number(currentUser?.id);
             return (
               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
                 <div className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm transition-all shadow-sm ${
@@ -489,4 +496,3 @@ function DashboardMessages({ currentUser }: { currentUser: any }) {
     </div>
   );
 }
-

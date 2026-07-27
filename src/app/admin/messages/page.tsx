@@ -31,6 +31,7 @@ function AdminMessagesContent() {
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [adminId, setAdminId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -70,7 +71,13 @@ function AdminMessagesContent() {
     const res = await fetch(`/api/admin/messages?clientId=${clientId}`);
     if (res.ok) {
       const data = await res.json();
-      setMessages(data);
+      // API now returns { currentUserId, messages } when clientId is provided
+      const messageList = data.messages || data;
+      const serverAdminId = data.currentUserId;
+      setMessages(Array.isArray(messageList) ? messageList : []);
+      if (serverAdminId) {
+        setAdminId(serverAdminId);
+      }
     }
   };
 
@@ -235,7 +242,7 @@ function AdminMessagesContent() {
                 ) : (
                   <>
                     {messages.map((msg, i) => {
-                      const isAdmin = msg.senderId !== selectedClientId;
+                      const isAdmin = adminId !== null ? msg.senderId === adminId : msg.senderId !== selectedClientId;
                       const showDate = i === 0 || formatDate(msg.createdAt) !== formatDate(messages[i - 1].createdAt);
                       return (
                         <div key={msg.id}>

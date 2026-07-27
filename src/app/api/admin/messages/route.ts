@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
           )
         );
 
-      return NextResponse.json(clientMessages);
+      return NextResponse.json({ currentUserId: Number(session.id), messages: clientMessages });
     } catch (err) {
       console.warn('DB query error in admin messages GET (detail):', err);
       // Return a basic mock conversation for demo purposes if DB fails

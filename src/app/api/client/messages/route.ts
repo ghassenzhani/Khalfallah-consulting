@@ -12,14 +12,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
 
+  const currentUserId = Number(session.id);
+
   try {
     const clientMessages = await db
       .select()
       .from(messages)
       .where(
         or(
-          eq(messages.senderId, Number(session.id)),
-          eq(messages.receiverId, Number(session.id))
+          eq(messages.senderId, currentUserId),
+          eq(messages.receiverId, currentUserId)
         )
       )
       .orderBy(asc(messages.createdAt));
@@ -29,15 +31,15 @@ export async function GET(request: NextRequest) {
       .set({ isRead: true })
       .where(
         and(
-          eq(messages.receiverId, Number(session.id)),
+          eq(messages.receiverId, currentUserId),
           eq(messages.isRead, false)
         )
       );
 
-    return NextResponse.json(clientMessages);
+    return NextResponse.json({ currentUserId, messages: clientMessages });
   } catch (err) {
     console.warn('Error fetching client messages, returning empty list:', err);
-    return NextResponse.json([]);
+    return NextResponse.json({ currentUserId, messages: [] });
   }
 }
 
