@@ -46,7 +46,7 @@ function AdminMessagesContent() {
   useEffect(() => {
     if (selectedClientId) {
       fetchMessages(selectedClientId);
-      const interval = setInterval(() => fetchMessages(selectedClientId), 5000);
+      const interval = setInterval(() => fetchMessages(selectedClientId), 2000);
       return () => clearInterval(interval);
     }
   }, [selectedClientId]);

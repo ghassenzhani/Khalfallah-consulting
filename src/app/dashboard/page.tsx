@@ -300,7 +300,7 @@ export default function ClientDashboard() {
             </div>
 
             {/* Client Messaging UI */}
-            <DashboardMessages />
+            <DashboardMessages currentUser={user} />
 
             {/* Quick Contact Card */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100">
@@ -318,7 +318,7 @@ export default function ClientDashboard() {
   );
 }
 
-function DashboardMessages() {
+function DashboardMessages({ currentUser }: { currentUser: any }) {
   const [msgs, setMsgs] = useState<{id: number; senderId: number; content: string; createdAt: string}[]>([]);
   const [newMsg, setNewMsg] = useState('');
   const [adminId, setAdminId] = useState<number | null>(null);
@@ -327,9 +327,9 @@ function DashboardMessages() {
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 4000);
+    const interval = setInterval(fetchMessages, 2000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -342,8 +342,11 @@ function DashboardMessages() {
         const data = await res.json();
         setMsgs(data);
         if (data.length > 0) {
-          const firstMsg = data[0];
-          setAdminId(firstMsg.senderId);
+          // Find the actual admin sender Id (any sender who is NOT the logged-in client)
+          const adminMsg = data.find((m: any) => m.senderId !== Number(currentUser?.id));
+          if (adminMsg) {
+            setAdminId(adminMsg.senderId);
+          }
         }
       }
     } catch (err) {
@@ -390,11 +393,11 @@ function DashboardMessages() {
           </div>
           <div>
             <div className="font-semibold text-sm leading-tight flex items-center gap-2">
-              <span>Khalfallah Consulting</span>
+              <span>Messagerie Conseiller</span>
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" title="En ligne"></span>
             </div>
             <div className="text-[11px] text-white/80 mt-0.5 font-medium">
-              Messagerie & Conseiller Dédié
+              Khalfallah Consulting
             </div>
           </div>
         </div>
@@ -429,7 +432,7 @@ function DashboardMessages() {
           </div>
         ) : (
           msgs.map((msg) => {
-            const isMe = msg.senderId !== (adminId || 1);
+            const isMe = msg.senderId === Number(currentUser?.id);
             return (
               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
                 <div className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm transition-all shadow-sm ${

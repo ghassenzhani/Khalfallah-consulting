@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { messages } from '@/db/schema';
+import { messages, users } from '@/db/schema';
 import { eq, or, and, asc } from 'drizzle-orm';
 import { getSession } from '@/lib/auth';
 
@@ -12,28 +12,33 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
 
-  const clientMessages = await db
-    .select()
-    .from(messages)
-    .where(
-      or(
-        eq(messages.senderId, Number(session.id)),
-        eq(messages.receiverId, Number(session.id))
+  try {
+    const clientMessages = await db
+      .select()
+      .from(messages)
+      .where(
+        or(
+          eq(messages.senderId, Number(session.id)),
+          eq(messages.receiverId, Number(session.id))
+        )
       )
-    )
-    .orderBy(asc(messages.createdAt));
+      .orderBy(asc(messages.createdAt));
 
-  // Mark received messages as read
-  await db.update(messages)
-    .set({ isRead: true })
-    .where(
-      and(
-        eq(messages.receiverId, Number(session.id)),
-        eq(messages.isRead, false)
-      )
-    );
+    // Mark received messages as read
+    await db.update(messages)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(messages.receiverId, Number(session.id)),
+          eq(messages.isRead, false)
+        )
+      );
 
-  return NextResponse.json(clientMessages);
+    return NextResponse.json(clientMessages);
+  } catch (err) {
+    console.warn('Error fetching client messages, returning empty list:', err);
+    return NextResponse.json([]);
+  }
 }
 
 // POST: Client sends a message to admin
@@ -44,17 +49,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Non autorisé' }, { status: 401 });
   }
 
-  const { receiverId, content } = await request.json();
+  try {
+    const { receiverId, content } = await request.json();
 
-  if (!content?.trim()) {
-    return NextResponse.json({ error: 'Message vide' }, { status: 400 });
+    if (!content?.trim()) {
+      return NextResponse.json({ error: 'Message vide' }, { status: 400 });
+    }
+
+    // Automatically resolve receiverId to admin if not valid
+    let finalReceiverId = Number(receiverId);
+    if (!finalReceiverId || finalReceiverId === Number(session.id)) {
+      try {
+        const adminUsers = await db.select().from(users).where(eq(users.role, 'admin')).limit(1);
+        if (adminUsers.length > 0) {
+          finalReceiverId = adminUsers[0].id;
+        } else {
+          finalReceiverId = 1;
+        }
+      } catch {
+        finalReceiverId = 1;
+      }
+    }
+
+    const newMessage = await db.insert(messages).values({
+      senderId: Number(session.id),
+      receiverId: finalReceiverId,
+      content: content.trim(),
+    }).returning();
+
+    return NextResponse.json(newMessage[0]);
+  } catch (err) {
+    console.error('Error sending client message:', err);
+    return NextResponse.json({ error: 'Erreur lors de l\'envoi du message' }, { status: 500 });
   }
-
-  const newMessage = await db.insert(messages).values({
-    senderId: Number(session.id),
-    receiverId: Number(receiverId),
-    content: content.trim(),
-  }).returning();
-
-  return NextResponse.json(newMessage[0]);
 }
