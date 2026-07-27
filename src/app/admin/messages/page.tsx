@@ -71,12 +71,18 @@ function AdminMessagesContent() {
     const res = await fetch(`/api/admin/messages?clientId=${clientId}`);
     if (res.ok) {
       const data = await res.json();
-      // API now returns { currentUserId, messages } when clientId is provided
       const messageList = data.messages || data;
-      const serverAdminId = data.currentUserId;
-      setMessages(Array.isArray(messageList) ? messageList : []);
-      if (serverAdminId) {
-        setAdminId(serverAdminId);
+      setMessages(
+        Array.isArray(messageList)
+          ? messageList.map((msg: any) => ({
+              ...msg,
+              senderId: Number(msg.senderId),
+              receiverId: Number(msg.receiverId),
+            }))
+          : []
+      );
+      if (data.currentUserId) {
+        setAdminId(Number(data.currentUserId));
       }
     }
   };
@@ -242,7 +248,7 @@ function AdminMessagesContent() {
                 ) : (
                   <>
                     {messages.map((msg, i) => {
-                      const isAdmin = adminId !== null ? msg.senderId === adminId : msg.senderId !== selectedClientId;
+                      const isAdmin = adminId !== null ? msg.senderId === adminId : selectedClientId !== null ? msg.senderId !== selectedClientId : false;
                       const showDate = i === 0 || formatDate(msg.createdAt) !== formatDate(messages[i - 1].createdAt);
                       return (
                         <div key={msg.id}>

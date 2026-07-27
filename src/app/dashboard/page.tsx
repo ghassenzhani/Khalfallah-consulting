@@ -342,15 +342,23 @@ function DashboardMessages({ currentUser }: { currentUser: any }) {
       if (res.ok) {
         const data = await res.json();
         const messageList = data.messages || data;
-        const serverUserId = data.currentUserId;
+        const serverUserId = Number(data.currentUserId);
         
-        setMsgs(messageList);
+        const normalizedMessages = Array.isArray(messageList)
+          ? messageList.map((msg: any) => ({
+              ...msg,
+              senderId: Number(msg.senderId),
+              receiverId: Number(msg.receiverId),
+            }))
+          : [];
+
+        setMsgs(normalizedMessages);
         if (serverUserId) {
           setMyId(serverUserId);
         }
         
-        if (messageList.length > 0 && serverUserId) {
-          const adminMsg = messageList.find((m: any) => m.senderId !== serverUserId);
+        if (normalizedMessages.length > 0) {
+          const adminMsg = normalizedMessages.find((m: any) => m.senderId !== serverUserId);
           if (adminMsg) {
             setAdminId(adminMsg.senderId);
           }
@@ -439,7 +447,8 @@ function DashboardMessages({ currentUser }: { currentUser: any }) {
           </div>
         ) : (
           msgs.map((msg) => {
-            const isMe = myId !== null ? msg.senderId === myId : msg.senderId === Number(currentUser?.id);
+            const userId = myId !== null ? myId : Number(currentUser?.id);
+            const isMe = Number(msg.senderId) === userId;
             return (
               <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} group`}>
                 <div className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm transition-all shadow-sm ${
